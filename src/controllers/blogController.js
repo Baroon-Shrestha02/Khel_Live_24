@@ -12,7 +12,15 @@ export const getBlogs = asyncErrorHandler(async (req, res, next) => {
   });
 });
 
-export const getOneBlog = asyncErrorHandler(async (req, res, next) => {});
+export const getOneBlog = asyncErrorHandler(async (req, res, next) => {
+  const { id } = req.params;
+  const oneblog = await Blog.find({ id });
+
+  res.status(200).send({
+    success: true,
+    blogs: oneblog,
+  });
+});
 
 export const updateBlog = asyncErrorHandler(async (req, res, next) => {});
 
