@@ -23,36 +23,28 @@ export const createStory = asyncErrorHandler(async (req, res) => {
 });
 
 export const getActiveStories = async (req, res) => {
-  try {
-    const stories = await Story.find({
-      expiresAt: { $gt: new Date() },
-    }).sort({ createdAt: 1 }); //oldest - newest -> FIFO
+  const stories = await Story.find({
+    expiresAt: { $gt: new Date() },
+  }).sort({ createdAt: 1 }); //oldest - newest -> FIFO
 
-    return res.status(200).json({
-      message: "Stories fetched successfully",
-      data: stories,
-    });
-  } catch (error) {
-    return res.status(500).json({ message: error.message });
-  }
+  return res.status(200).json({
+    message: "Stories fetched successfully",
+    data: stories,
+  });
 };
 
 export const deleteStory = async (req, res) => {
-  try {
-    const story = await Story.findById(req.params.id);
+  const story = await Story.findById(req.params.id);
 
-    if (!story) {
-      return res.status(404).json({ message: "Story not found" });
-    }
-
-    if (story.mediaUrl?.public_id) {
-      await deleteMedia(story.mediaUrl.public_id);
-    }
-
-    await story.deleteOne();
-
-    return res.status(200).json({ message: "Story deleted successfully" });
-  } catch (error) {
-    return res.status(500).json({ message: error.message });
+  if (!story) {
+    return res.status(404).json({ message: "Story not found" });
   }
+
+  if (story.mediaUrl?.public_id) {
+    await deleteMedia(story.mediaUrl.public_id);
+  }
+
+  await story.deleteOne();
+
+  return res.status(200).json({ message: "Story deleted successfully" });
 };

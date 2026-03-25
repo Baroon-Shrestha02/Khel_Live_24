@@ -7,6 +7,7 @@ import cookieParser from "cookie-parser";
 import authRoutes from "./routes/authRoutes.js";
 import blogRoutes from "./routes/blogRoutes.js";
 import storiesRoutes from "./routes/storyRoutes.js";
+import { startStoryCleanup } from "./utils/cron.js";
 
 const app = express();
 
@@ -26,5 +27,6 @@ app.use("/api", blogRoutes);
 app.use("/api", storiesRoutes);
 
 app.use(globalErrorHandler);
+startStoryCleanup();
 
 export default app;
