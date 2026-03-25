@@ -9,6 +9,19 @@ import {
 
 const router = express.Router();
 
-router.get("/blogs/", getBlogs);
+// ✅ CREATE
+router.post("/blogs/create", createBlog);
+
+// ✅ GET ALL
+router.get("/blogs", getBlogs);
+
+// ✅ GET ONE
+router.get("/blogs/:id", getOneBlog);
+
+// ✅ UPDATE
+router.put("/blogs/:id", updateBlog);
+
+// ✅ DELETE
+router.delete("/blogs/:id", deleteBlog);
 
 export default router;
