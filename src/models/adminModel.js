@@ -10,7 +10,7 @@ const adminSchema = new mongoose.Schema(
       minlength: [3, "Firstname must be at least 3 characters"],
       maxlength: [30, "Firstname cannot exceed 30 characters"],
     },
-
+    
     lastname: {
       type: String,
       required: [true, "Lastname is required"],
@@ -26,6 +26,15 @@ const adminSchema = new mongoose.Schema(
       lowercase: true,
       trim: true,
       validate: [validator.isEmail, "Please provide a valid email"],
+
+      email:{
+        type:String,
+        required:(true,"Email is required"),
+        unique:true,
+        lowercase:true,
+        trim:true,
+        validate:[validator.isEmail,"Please provide a valid email"]   
+      }
     },
 
     phone: {
