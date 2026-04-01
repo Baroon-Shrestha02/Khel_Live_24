@@ -1,90 +1,54 @@
-import mongoose from "mongoose"; // Import mangooseto create schema and model
+import mongoose from "mongoose";
+import { nanoid } from "nanoid";
 import slugify from "slugify";
+import { transliterate } from "transliteration";
 
-//Define the schema for blog
 const blogSchema = new mongoose.Schema(
   {
-    //title of the blog
-    title: {
-      type: String,
-
-      required: true,
-      trim: true,
-    },
-   //URL friendly version of the title
-    slug: {
-      type: String,
-      //Each slug must be unique
-      unique: true,
-    },
-    //Short description of the blog show on listeing pages
-    shortDescription: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-
-    description: {
-      type: String,
-      required: true,
-    },
-
-    image: {
-      type: String,
-    },
-  //The admin/user who published the blog
-    publishedBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Admin", // 👈 only admin can publish
-      required: true,
-    },
-   //Tags for the blog(array of strings )
-    tags: [
-      {
-        type: String,
-        trim: true, //remove extra spaces from each tag
-      },
-    ],
-   //category of the blog
+    title: { type: String, required: true, trim: true },
+    slug: { type: String, unique: true }, // ✅ add slug field
+    summary: { type: String, trim: true },
     category: {
       type: String,
+      enum: ["Football", "Volleyball", "Cricket", "Others"],
       trim: true,
     },
- //Status can be draft or published
+    tags: [{ type: String }],
     status: {
       type: String,
       enum: ["draft", "published"],
       default: "draft",
     },
-
-    //Whether the blog is featured or not
-    isFeatured: {
-      type: Boolean,
-      default: false,
+    publishedAt: { type: Date }, // ✅ add publishedAt field
+    heroImage: {
+      public_id: { type: String, required: true },
+      url: { type: String, required: true },
     },
-
-    //When the blog was published
-    publishedAt: {
-      type: Date,
+    content: {
+      type: String,
+      required: true,
+    },
+    featured: {
+      type: Boolean,
+      default: "false",
     },
   },
-  { timestamps: true }, //Automatically and createdAt and updatedAt fields
+  { timestamps: true },
 );
 
-//Pre save hook to generate slug and set publishedAt
-blogSchema.pre("save", function (next) {
+blogSchema.pre("save", function () {
   if (!this.slug) {
-    this.slug = slugify(this.title, { lower: true, strict: false });
+    const transliterated = transliterate(this.title);
+    const baseSlug = slugify(transliterated, {
+      lower: true,
+      strict: true,
+    });
+    this.slug = `${baseSlug}-${nanoid(6)}`;
   }
-  
-// if status is published and published is empty set [publisheed the curren data]
+
   if (this.status === "published" && !this.publishedAt) {
     this.publishedAt = new Date();
   }
-//continue saving the documents
-  next();
 });
 
-const Blog = mongoose.model("Blog", blogSchema);
-// Exports the blog model so it can be used in other parts of the application(like controllers)
-export default Blog;
+export default mongoose.model("Blog", blogSchema);

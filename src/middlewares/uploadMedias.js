@@ -12,10 +12,11 @@ const ALLOWED_MIME_TYPES = new Set([
 
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
 
-const streamUpload = (buffer) => {
+// ✅ folder param added
+const streamUpload = (buffer, folder) => {
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
-      { folder: "inquiries", resource_type: "image" },
+      { folder, resource_type: "image" }, // ✅ folder is now defined
       (error, result) => {
         if (error) reject(error);
         else resolve(result);
@@ -25,7 +26,7 @@ const streamUpload = (buffer) => {
   });
 };
 
-const uploadMedias = async (files) => {
+const uploadMedias = async (files, folder = "general") => {
   const fileArray = Array.isArray(files) ? files : [files];
   const isSingleFile = fileArray.length === 1;
 
@@ -44,7 +45,7 @@ const uploadMedias = async (files) => {
       }
 
       try {
-        const result = await streamUpload(file.buffer);
+        const result = await streamUpload(file.buffer, folder); // ✅ pass folder
         return {
           public_id: result.public_id,
           url: result.secure_url,

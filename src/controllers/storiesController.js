@@ -7,7 +7,7 @@ export const createStory = asyncErrorHandler(async (req, res) => {
     return res.status(400).json({ message: "No media file provided" });
   }
 
-  const uploaded = await uploadMedias(req.file);
+  const uploaded = await uploadMedias(req.file, "stories");
 
   const story = await Story.create({
     mediaUrl: {

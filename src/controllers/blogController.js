@@ -1,146 +1,167 @@
 import Blog from "../models/blogModel.js";
+import { uploadMedias, deleteMedia } from "../middlewares/uploadMedias.js";
 import asyncErrorHandler from "../utils/asyncErrorHandler.js";
-import AppError from "../utils/appError.js";
+import AppError from "../utils/AppError.js";
 
-// ✅ CREATE BLOG
+// POST /api/add-blog
 export const createBlog = asyncErrorHandler(async (req, res, next) => {
-  const {
+  const { title, summary, category, tags, status, content, featured } =
+    req.body;
+
+  if (!title) return next(new AppError("Title is required", 400));
+  if (!content) return next(new AppError("Content is required", 400));
+  if (!req.file) return next(new AppError("Hero image is required", 400));
+
+  const uploadedHero = await uploadMedias(req.file, "blogs/hero");
+
+  const blog = await Blog.create({
     title,
-    shortDescription,
-    description,
-    tags,
+    summary,
     category,
-    status,
-    isFeatured,
-  } = req.body;
+    tags: tags ? JSON.parse(tags) : [],
+    status: status || "draft",
+    heroImage: {
+      public_id: uploadedHero.public_id,
+      url: uploadedHero.url,
+    },
+    featured: false,
+    content, // markdown string from rich text editor
+  });
 
-  // 🔴 VALIDATION
-  if (!title || title.trim() === "") {
-    return next(new AppError("Title is required", 400));
-  }
+  return res.status(201).json({
+    message: "Blog created successfully",
+    data: blog,
+  });
+});
 
-  if (!shortDescription || shortDescription.trim() === "") {
-    return next(new AppError("Short description is required", 400));
-  }
+// GET /api/get-blogs
+export const getBlogs = asyncErrorHandler(async (req, res) => {
+  const { status, category, tags, limit, sort } = req.query;
 
-  if (!description || description.trim() === "") {
-    return next(new AppError("Description is required", 400));
-  }
+  const filter = {};
+  if (status) filter.status = status;
+  if (category) filter.category = category;
+  if (tags) filter.tags = { $in: tags.split(",") };
 
-  if (!category || category.trim() === "") {
-    return next(new AppError("Category is required", 400));
-  }
+  const sortOrder =
+    sort === "-createdAt" ? { createdAt: -1 } : { createdAt: -1 };
+  const limitNum = limit ? parseInt(limit) : 0; // 0 = no limit in mongoose
 
-  if (tags && !Array.isArray(tags)) {
-    return next(new AppError("Tags must be an array", 400));
-  }
+  const blogs = await Blog.find(filter)
+    // .select("-content")
+    .sort(sortOrder)
+    .limit(limitNum);
+
+  return res.status(200).json({
+    message: "Blogs fetched successfully",
+    total: blogs.length,
+    data: blogs,
+  });
+});
+
+// GET /api/get-blog/:id
+export const getOneBlog = asyncErrorHandler(async (req, res, next) => {
+  const blog = await Blog.findById(req.params.id);
+
+  if (!blog) return next(new AppError("Blog not found", 404));
+
+  return res.status(200).json({
+    message: "Blog fetched successfully",
+    data: blog,
+  });
+});
+
+// PUT /api/update-blog/:id
+export const updateBlog = asyncErrorHandler(async (req, res, next) => {
+  const { title, summary, category, tags, status, content, featured } =
+    req.body;
 
   if (status && !["draft", "published"].includes(status)) {
-    return next(new AppError("Status must be 'draft' or 'published'", 400));
-  }
-
-  if (isFeatured && typeof isFeatured !== "boolean") {
-    return next(new AppError("isFeatured must be true or false", 400));
-  }
-
-  // ✅ CREATE BLOG
-  const blog = await Blog.create({
-    title: title.trim(),
-    shortDescription: shortDescription.trim(),
-    description: description.trim(),
-    tags,
-    category: category.trim(),
-    status,
-    isFeatured,
-    publishedBy: req.user?._id || "65f000000000000000000000",
-  });
-
-  res.status(201).json({
-    success: true,
-    message: "Blog created successfully",
-    blog,
-  });
-});
-
-// ✅ GET ALL BLOGS
-export const getBlogs = asyncErrorHandler(async (req, res) => {
-  const blogs = await Blog.find().sort({ createdAt: -1 });
-
-  res.status(200).json({
-    success: true,
-    blogs,
-  });
-});
-
-// ✅ GET SINGLE BLOG
-export const getOneBlog = asyncErrorHandler(async (req, res, next) => {
-  const { id } = req.params;
-
-  if (!id) {
-    return next(new AppError("Blog ID is required", 400));
-  }
-
-  const blog = await Blog.findById(id);
-
-  if (!blog) {
-    return next(new AppError("Blog not found", 404));
-  }
-
-  res.status(200).json({
-    success: true,
-    blog,
-  });
-});
-
-// ✅ UPDATE BLOG
-export const updateBlog = asyncErrorHandler(async (req, res, next) => {
-  const { id } = req.params;
-
-  if (!id) {
-    return next(new AppError("Blog ID is required", 400));
-  }
-
-  // Optional validation (only if fields provided)
-  if (req.body.status && !["draft", "published"].includes(req.body.status)) {
     return next(new AppError("Invalid status value", 400));
   }
 
-  if (req.body.tags && !Array.isArray(req.body.tags)) {
-    return next(new AppError("Tags must be an array", 400));
+  const existingBlog = await Blog.findById(req.params.id);
+  if (!existingBlog) return next(new AppError("Blog not found", 404));
+
+  const updateFields = {};
+  if (title) updateFields.title = title;
+  if (summary) updateFields.summary = summary;
+  if (category) updateFields.category = category;
+  if (tags) updateFields.tags = JSON.parse(tags);
+  if (status) updateFields.status = status;
+  if (content) updateFields.content = content;
+  if (featured) updateFields.featured = featured;
+
+  // Replace hero image if new one uploaded
+  if (req.file) {
+    if (existingBlog.heroImage?.public_id) {
+      await deleteMedia(existingBlog.heroImage.public_id);
+    }
+    const uploadedHero = await uploadMedias(req.file, "blogs/hero");
+    updateFields.heroImage = {
+      public_id: uploadedHero.public_id,
+      url: uploadedHero.url,
+    };
   }
 
-  const blog = await Blog.findByIdAndUpdate(id, req.body, {
-    new: true,
-    runValidators: true, // important
-  });
+  const blog = await Blog.findByIdAndUpdate(
+    req.params.id,
+    { $set: updateFields },
+    { new: true, runValidators: true },
+  );
 
-  if (!blog) {
-    return next(new AppError("Blog not found", 404));
-  }
-
-  res.status(200).json({
-    success: true,
+  return res.status(200).json({
     message: "Blog updated successfully",
-    blog,
+    data: blog,
   });
 });
 
-// ✅ DELETE BLOG
+// DELETE /api/delete-blog/:id
 export const deleteBlog = asyncErrorHandler(async (req, res, next) => {
-  const { id } = req.params;
+  const blog = await Blog.findById(req.params.id);
 
-  if (!id) {
-    return next(new AppError("Blog ID is required", 400));
+  if (!blog) return next(new AppError("Blog not found", 404));
+
+  if (blog.heroImage?.public_id) {
+    await deleteMedia(blog.heroImage.public_id);
   }
 
-  const blog = await Blog.findByIdAndDelete(id);
+  await blog.deleteOne();
 
-  if (!blog) {
-    return next(new AppError("Blog not found", 404));
-  }
+  return res.status(200).json({ message: "Blog deleted successfully" });
+});
 
-  res.status(200).json({
+export const getCategories = asyncErrorHandler(async (req, res, next) => {
+  const categories = await Blog.aggregate([
+    {
+      $match: { status: "published" }, // optional but recommended
+    },
+    {
+      $group: {
+        _id: "$category",
+        count: { $sum: 1 },
+      },
+    },
+    {
+      $project: {
+        _id: 0,
+        category: "$_id",
+        count: 1,
+      },
+    },
+    {
+      $sort: { count: -1 },
+    },
+  ]);
+
+  res.status(200).send({
     success: true,
-    message: "Blog deleted successfully",
+    data: categories,
   });
+});
+
+export const getFeaturedBlog = asyncErrorHandler(async (req, res, next) => {
+  const featured = await Blog.find({ featured: true });
+
+  res.status(200).send({ succes: true, data: featured });
 });
