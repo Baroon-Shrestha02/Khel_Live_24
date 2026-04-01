@@ -5,11 +5,11 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import Admin from "../models/adminModel.js";
 
-export const resigter = asyncErrorHandler(async (req, res, next) => {
+export const register = asyncErrorHandler(async (req, res, next) => {
   const { firstname, lastname, email, phone, password } = req.body;
 
-  if (!firstname || !lastname || !email || !phone || !password)
-    return next(new AppError("Plase fill all the fields", 404));
+  if (!firstname || !lastname || !email || !password)
+    return next(new AppError("Please fill all the fields", 404));
 
   if (!validator.isEmail(email)) {
     return res.status(400).json({ message: "Invalid email format" });
@@ -27,7 +27,6 @@ export const resigter = asyncErrorHandler(async (req, res, next) => {
   const newUser = {
     firstname,
     lastname,
-    phone,
     email,
     password: hashedPassword,
     role: "user",
