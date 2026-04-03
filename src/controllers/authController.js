@@ -6,7 +6,7 @@ import jwt from "jsonwebtoken";
 import Admin from "../models/adminModel.js";
 
 export const register = asyncErrorHandler(async (req, res, next) => {
-  const { firstname, lastname, email, phone, password } = req.body;
+  const { firstname, lastname, email, password } = req.body;
 
   if (!firstname || !lastname || !email || !password)
     return next(new AppError("Please fill all the fields", 404));
@@ -15,7 +15,7 @@ export const register = asyncErrorHandler(async (req, res, next) => {
     return res.status(400).json({ message: "Invalid email format" });
   }
   const existingUser = await Admin.findOne({
-    $or: [{ email }, { phone }],
+    $or: [{ email }],
   });
 
   if (existingUser) {
