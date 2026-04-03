@@ -62,12 +62,12 @@ export const login = asyncErrorHandler(async (req, res, next) => {
   const token = generateToken(user._id);
 
   res
-    .cookie("token", token, {
-      httpOnly: true,
-      secure: false,
-      sameSite: "Lax",
-      maxAge: 24 * 60 * 60 * 1000,
-    })
+.cookie("token", token, {
+  httpOnly: true,
+  secure: true,
+  sameSite: "None",
+  maxAge: 24 * 60 * 60 * 1000,
+})
     .status(200)
     .json({
       status: "success",
