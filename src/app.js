@@ -11,7 +11,10 @@ import { startStoryCleanup } from "./utils/cron.js";
 
 const app = express();
 
-const allowedOrigins = ["http://localhost:5173"];
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://playbook2.netlify.app",
+];
 
 app.use(
   cors({
