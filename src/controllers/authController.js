@@ -64,8 +64,8 @@ export const login = asyncErrorHandler(async (req, res, next) => {
   res
     .cookie("token", token, {
       httpOnly: true,
-      secure: false,
-      sameSite: "Lax",
+      secure: true,
+      sameSite: "None",
       maxAge: 24 * 60 * 60 * 1000,
     })
     .status(200)

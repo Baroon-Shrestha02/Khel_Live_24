@@ -1,7 +1,7 @@
 import Blog from "../models/blogModel.js";
 import { uploadMedias, deleteMedia } from "../middlewares/uploadMedias.js";
 import asyncErrorHandler from "../utils/asyncErrorHandler.js";
-import AppError from "../utils/AppError.js";
+import AppError from "../utils/appError.js";
 
 // POST /api/add-blog
 export const createBlog = asyncErrorHandler(async (req, res, next) => {
